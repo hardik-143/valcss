@@ -1,0 +1,24 @@
+{
+  "name": "valcss",
+  "version": "1.0.0",
+  "description": "Tiny utility to generate CSS",
+  "main": "index.js",
+  "bin": {
+    "valcss": "./valcss.js"
+  },
+  "keywords": [
+    "css",
+    "atomic",
+    "arbitrary",
+    "inline"
+  ],
+  "author": "Hardik Desai",
+  "license": "MIT",
+  "dependencies": {
+    "glob": "^11.0.3",
+    "tailwind": "^4.0.0"
+  },
+  "devDependencies": {
+    "chokidar": "^4.0.3"
+  }
+}
