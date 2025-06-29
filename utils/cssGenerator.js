@@ -63,7 +63,10 @@ function createSpacingUtils(property) {
       validate: validators.spacingValues,
       generate: (val) => {
         let cssValue = normalizeCalcExpression(val);
-
+        let isOnlyDigit = regex.digit.test(cssValue);
+        if (isOnlyDigit) {
+          cssValue = `${parseFloat(cssValue)}px`;
+        }
         cssValue = cssValue.replaceAll("_", " ");
 
         if (directions[key][0] === "") {
@@ -334,29 +337,32 @@ function generateCSSFromClass(fullClassName) {
     console.log("variants 23", variants, mediaPrefix, pseudo, pluginMatchKey);
 
     // ✅ Variant-specific classes
-    // if (
-    //   (mediaPrefix && variants.includes(mediaPrefix)) ||
-    //   (pseudo && variants.includes(pseudo))
-    // ) {
-    //   const cssBody = Object.entries(styles)
-    //     .map(([prop, val]) => `${prop}: ${val};`)
-    //     .join(" ");
+    if (
+      typeof variants === "string" &&
+      variants === "*" ||
+      variants.includes("*") || // allow all variants
+      (mediaPrefix && variants.includes(mediaPrefix)) ||
+      (pseudo && variants.includes(pseudo))
+    ) {
+      const cssBody = Object.entries(styles)
+        .map(([prop, val]) => `${prop}: ${val};`)
+        .join(" ");
 
-    //   let selector = `.${escapeClass()}`;
-    //   if (pseudo) selector += `:${pseudo}`;
+      let selector = `.${escapeClass(fullClassName)}`;
+      if (pseudo) selector += `:${pseudo}`;
 
-    //   let rule = `${selector} { ${cssBody} }`;
+      let rule = `${selector} { ${cssBody} }`;
 
-    //   if (mediaPrefix) {
-    //     const px = breakpoints[mediaPrefix];
-    //     const query = isMax
-    //       ? `@media (max-width: ${px - 1}px)`
-    //       : `@media (min-width: ${px}px)`;
-    //     return `${query} {\n  ${rule}\n}`;
-    //   }
+      if (mediaPrefix) {
+        const px = breakpoints[mediaPrefix];
+        const query = isMax
+          ? `@media (max-width: ${px - 1}px)`
+          : `@media (min-width: ${px}px)`;
+        return `${query} {\n  ${rule}\n}`;
+      }
 
-    //   return rule;
-    // }
+      return rule;
+    }
 
     // ⚠️ Variant is not allowed
     console.warn(`⚠️ Variant not allowed for: ${fullClassName}`);
@@ -420,7 +426,8 @@ function extractAndGenerateCSS(htmlContent) {
     if (bracketed) return true;
 
     const utilitiesMap = getUtilitiesMap();
-    if (utilitiesMap[cls]) {
+    let baseUtility = cls.split(":").pop();
+    if (utilitiesMap[baseUtility]) {
       return true;
     }
 

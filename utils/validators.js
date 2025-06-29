@@ -13,7 +13,7 @@ const regex = {
   clamp: /^clamp\(.+\)$/,
   min: /^min\(.+\)$/,
   max: /^max\(.+\)$/,
-  hex: /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/, 
+  hex: /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/,
   rgb: /^rgb\((\s*\d{1,3}\s*,){2}\s*\d{1,3}\s*\)$/,
   rgba: /^rgba\((\s*\d{1,3}\s*,){3}\s*(0|1|0?\.\d+)\)$/,
   namedColor: /^(transparent|[a-zA-Z]+)$/,
@@ -29,7 +29,7 @@ const regex = {
   items: /^(stretch|flex-start|flex-end|center|baseline)$/,
   borderStyle: /^(none|solid|dashed|dotted|double|groove|ridge|inset|outset)$/,
   opacity: /^(0(\.\d+)?|1(\.0+)?)$/,
-  digit: /^-?\d+$/,
+  digit: /^[-+]?(?:\d+|\d*\.\d+)$/,
   position: /^(static|relative|absolute|fixed|sticky)$/,
   float: /^(left|right|none)$/,
 };

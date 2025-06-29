@@ -1,6 +1,6 @@
 {
   "name": "valcss",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Tiny utility to generate CSS",
   "main": "valcss.js",
   "bin": {

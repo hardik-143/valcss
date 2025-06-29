@@ -20,7 +20,7 @@ module.exports = {
           },
           // "flex-between": "flex justify-[between] items-[start]",
         },
-        ["hover", "md"]
+        "*"
       );
     },
   ],
