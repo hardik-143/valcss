@@ -24,10 +24,6 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Run build (optional)
-        run: npm run build
-        # Remove or comment this line if not needed
-
       - name: Publish to npm
         run: npm publish
         env:
