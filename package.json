@@ -7,10 +7,12 @@
     "valcss": "./valcss.js"
   },
   "keywords": [
+    "valcss",
     "css",
-    "atomic",
     "arbitrary",
-    "inline"
+    "inline",
+    "utility",
+    "utility-first"
   ],
   "author": "Hardik Desai",
   "license": "MIT",
