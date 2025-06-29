@@ -254,7 +254,6 @@ function generateCSSFromClass(fullClassName) {
   const isImportant = baseClass.startsWith("!");
   const cleanBaseClass = isImportant ? baseClass.slice(1) : baseClass;
 
-  console.log("cleanBaseClass", cleanBaseClass, baseClass, isImportant);
   if (individualValues.includes(cleanBaseClass)) {
     // direct match like "block", "flex", "absolute", etc.
     val = cleanBaseClass;
