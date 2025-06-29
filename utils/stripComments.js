@@ -10,9 +10,9 @@
 function stripComments(content) {
   return (
     content
-      .replace(/<!--[\s\S]*?-->/g, "")
-      .replace(/\/\*[\s\S]*?\*\//g, "")
-      .replace(/\/\/.*/g, "")
+      .replace(/<!--[\s\S]*?-->/g, "") // remove html comments
+      .replace(/\/\*[\s\S]*?\*\//g, "") // remove multi-line js comments
+      .replace(/\/\/.*/g, "") // remove single-line js comments
   );
 }
 

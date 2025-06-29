@@ -13,7 +13,7 @@ const regex = {
   clamp: /^clamp\(.+\)$/,
   min: /^min\(.+\)$/,
   max: /^max\(.+\)$/,
-  hex: /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/,
+  hex: /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/, 
   rgb: /^rgb\((\s*\d{1,3}\s*,){2}\s*\d{1,3}\s*\)$/,
   rgba: /^rgba\((\s*\d{1,3}\s*,){3}\s*(0|1|0?\.\d+)\)$/,
   namedColor: /^(transparent|[a-zA-Z]+)$/,
@@ -99,6 +99,25 @@ const validators = {
   },
 
   float: (val) => regex.float.test(val),
+  flex: (val) => regex.flex.test(val),
+
+  spacingValues: (val) => {
+    const trimmed = val.trim().toLowerCase();
+    const parts = trimmed.split("_");
+
+    // Allow 1 to 4 values
+    if (parts.length < 1 || parts.length > 4) return false;
+
+    // Validate each part
+    return parts.every(
+      (part) =>
+        regex.length.test(part) ||
+        regex.calc.test(part) ||
+        regex.clamp.test(part) ||
+        regex.min.test(part) ||
+        regex.max.test(part)
+    );
+  },
 };
 
 export { validators, regex };

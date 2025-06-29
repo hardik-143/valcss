@@ -3,14 +3,9 @@
 const fs = require("fs");
 const chokidar = require("chokidar");
 const { loadConfig } = require("./utils/config");
-const { resolveFiles } = require("./utils/fileResolver");
-const { generateCombinedCSS } = require("./utils/cssGenerator");
-const { injectCSSIntoHTML } = require("./utils/injector");
-
+const { setConfig, getConfig } = require("./utils/configCache");
+const { addUtilities, resetUtilitiesMap } = require("./utils/pluginEngine");
 const args = process.argv.slice(2); // remove the first two args (node and the script path)
-let cliOutputPath = null; // output file path
-let watchMode = false; // watch mode
-let dryMode = false; // dry mode
 
 // --------------------- INIT COMMAND ---------------------
 if (args[0] === "init") {
@@ -36,6 +31,24 @@ module.exports = {
   process.exit(0);
 }
 // --------------------- INIT COMMAND ---------------------
+
+resetUtilitiesMap();
+const __CONFIG = loadConfig();
+if (Array.isArray(__CONFIG.plugins)) {
+  __CONFIG.plugins.forEach((plugin) => {
+    if (typeof plugin === "function") {
+      plugin({ addUtilities });
+    }
+  });
+}
+setConfig(__CONFIG); // cache it globally
+const { resolveFiles } = require("./utils/fileResolver");
+const { generateCombinedCSS } = require("./utils/cssGenerator");
+const { injectCSSIntoHTML } = require("./utils/injector");
+
+let cliOutputPath = null; // output file path
+let watchMode = false; // watch mode
+let dryMode = false; // dry mode
 
 // --------------------- DRY MODE ---------------------
 if (args.includes("--dry-run") && args[0] === "--dry-run") dryMode = true;
@@ -86,7 +99,7 @@ function buildCSS() {
       files: patterns,
       output: configOutput = "valcss-main.css",
       inject,
-    } = loadConfig();
+    } = getConfig();
 
     const resolvedFiles = resolveFiles(patterns); // get all the files that match the patterns
     if (resolvedFiles.length === 0) {
@@ -126,9 +139,10 @@ DRY MODE ENABLED
 // --------------------- MAIN BUILD FUNCTION ---------------------
 
 // --------------------- EXECUTION MODE ---------------------
+
 if (watchMode) {
   try {
-    const { files: patterns } = loadConfig();
+    const { files: patterns } = getConfig();
     const resolvedFiles = resolveFiles(patterns);
 
     console.log("👀 Watching files for changes...");

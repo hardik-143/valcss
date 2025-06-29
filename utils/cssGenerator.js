@@ -4,10 +4,12 @@ const { stripComments } = require("./stripComments");
 const { normalizeCalcExpression } = require("./normalizeCalcExpression");
 const {
   pseudoPrefixes,
-  breakpoints,
   positionValues,
   displayValues,
 } = require("./constants");
+const { getBreakpointConfig } = require("./getBreakpointConfig");
+const { breakpoints } = getBreakpointConfig();
+const { getUtilitiesMap } = require("./pluginEngine");
 
 const individualValues = [...positionValues, ...displayValues];
 
@@ -58,9 +60,12 @@ function createSpacingUtils(property) {
     const classKey = property[0] + dirSuffix; // p, px, pt...
 
     utils[classKey] = {
-      validate: validators.lengthUnit,
+      validate: validators.spacingValues,
       generate: (val) => {
-        const cssValue = normalizeCalcExpression(val);
+        let cssValue = normalizeCalcExpression(val);
+
+        cssValue = cssValue.replaceAll("_", " ");
+
         if (directions[key][0] === "") {
           return `${property}: ${cssValue};`; // p or m
         }
@@ -116,6 +121,8 @@ const insetUtils = createSizeUtils({
 
 const styleMap = {
   ...spacingUtils,
+  ...sizeUtils,
+  ...insetUtils,
   text: {
     validate: (val) =>
       validators.color(val) ||
@@ -160,7 +167,7 @@ const styleMap = {
       return `${property}: ${val};`;
     },
   },
-  ...sizeUtils,
+
   d: {
     validate: validators.display,
     generate: (val) => `display: ${val};`,
@@ -198,7 +205,11 @@ const styleMap = {
         return `border-style: ${val};`;
       }
 
-      return `border-color: ${val.replaceAll("_", " ")};`;
+      let isColor = validators.color(val);
+      if (isColor) {
+        return `border-color: ${val};`;
+      }
+      return `border: ${val.replaceAll("_", " ")};`;
     },
   },
   radius: {
@@ -209,15 +220,76 @@ const styleMap = {
     validate: validators.position,
     generate: (val) => `position: ${val};`,
   },
-  ...insetUtils,
   opacity: {
     validate: validators.opacity,
     generate: (val) => `opacity: ${val};`,
   },
   z: { validate: validators.zIndex, generate: (val) => `z-index: ${val};` },
+  flex: {
+    validate: validators.flex,
+    generate: (val) => `flex: ${val};`,
+  },
   ...positionStyleMap,
   ...displayStyleMap,
 };
+
+/**
+ * Parses the class string and returns the media prefix, isMax, pseudo, baseClass, cleanBaseClass, and isImportant.
+ * @param {string} fullClassName - The full class name to parse.
+ * @description checks for media prefix, isMax, pseudo, baseClass, cleanBaseClass, and isImportant.
+ * @returns {Object} The parsed class string.
+ */
+function parseClassString(fullClassName) {
+  const parts = fullClassName.split(":");
+  const potentialBase = parts[parts.length - 1];
+
+  let mediaPrefix = null;
+  let isMax = false;
+  let pseudo = null;
+
+  // max-bp:p-[1px]
+  // Only check first part for media
+  const firstPart = parts[0];
+  if (firstPart.startsWith("max-")) {
+    const bp = firstPart.slice(4);
+    if (breakpoints[bp]) {
+      mediaPrefix = bp;
+      isMax = true;
+    }
+  } else if (breakpoints[firstPart]) {
+    mediaPrefix = firstPart;
+    isMax = false;
+  }
+
+  // Check remaining parts for pseudo
+  for (let i = mediaPrefix ? 1 : 0; i < parts.length - 1; i++) {
+    const part = parts[i];
+
+    if (breakpoints[part] || part.startsWith("max-")) {
+      console.warn(
+        `⚠️ Media prefix "${part}" must appear only as the first segment: "${fullClassName}"`
+      );
+    }
+    if (pseudoPrefixes.includes(part)) {
+      pseudo = part;
+    }
+  }
+
+  const baseClass = potentialBase;
+  const isImportant = baseClass.startsWith("!");
+  const cleanBaseClass = isImportant ? baseClass.slice(1) : baseClass;
+  return {
+    mediaPrefix,
+    isMax,
+    pseudo,
+    baseClass,
+    cleanBaseClass,
+    isImportant,
+  };
+}
+function escapeClass(className) {
+  return className.replace(/([ !"#$%&'()*+,./:;<=>?@[\\\]^`{|}~])/g, "\\$1");
+}
 
 /**
  * Generates the CSS from a class name.
@@ -225,35 +297,11 @@ const styleMap = {
  * @returns {string} The generated CSS.
  */
 function generateCSSFromClass(fullClassName) {
-  let mediaPrefix = null;
-  let pseudo = null;
-  let isMax = false;
-  let baseClass = fullClassName;
+  const { mediaPrefix, isMax, pseudo, baseClass, cleanBaseClass, isImportant } =
+    parseClassString(fullClassName);
+  console.log("fullClassName", fullClassName, pseudo);
 
-  const parts = fullClassName.split(":");
-  const potentialBase = parts[parts.length - 1];
-
-  for (let i = 0; i < parts.length - 1; i++) {
-    const part = parts[i];
-
-    if (part.startsWith("max-")) {
-      const bp = part.slice(4);
-      if (breakpoints[bp]) {
-        mediaPrefix = bp;
-        isMax = true;
-      }
-    } else if (breakpoints[part]) {
-      mediaPrefix = part;
-      isMax = false;
-    } else if (pseudoPrefixes.includes(part)) {
-      pseudo = part;
-    }
-  }
-
-  baseClass = potentialBase;
-  const isImportant = baseClass.startsWith("!");
-  const cleanBaseClass = isImportant ? baseClass.slice(1) : baseClass;
-
+  // console.log("cleanBaseClass", cleanBaseClass, isMax, mediaPrefix);
   if (individualValues.includes(cleanBaseClass)) {
     // direct match like "block", "flex", "absolute", etc.
     val = cleanBaseClass;
@@ -268,11 +316,55 @@ function generateCSSFromClass(fullClassName) {
     }
   }
 
+  const utilitiesMap = getUtilitiesMap();
+  const pluginMatchKey = cleanBaseClass;
+
+  if (utilitiesMap[pluginMatchKey]) {
+    const { styles, variants } = utilitiesMap[pluginMatchKey];
+
+    console.log("variants", variants, mediaPrefix, pseudo, pluginMatchKey);
+    // ✅ Always allow base class
+    if (!mediaPrefix && !pseudo) {
+      const cssBody = Object.entries(styles)
+        .map(([prop, val]) => `${prop}: ${val};`)
+        .join(" ");
+
+      return `.${fullClassName} { ${cssBody} }`;
+    }
+    console.log("variants 23", variants, mediaPrefix, pseudo, pluginMatchKey);
+
+    // ✅ Variant-specific classes
+    // if (
+    //   (mediaPrefix && variants.includes(mediaPrefix)) ||
+    //   (pseudo && variants.includes(pseudo))
+    // ) {
+    //   const cssBody = Object.entries(styles)
+    //     .map(([prop, val]) => `${prop}: ${val};`)
+    //     .join(" ");
+
+    //   let selector = `.${escapeClass()}`;
+    //   if (pseudo) selector += `:${pseudo}`;
+
+    //   let rule = `${selector} { ${cssBody} }`;
+
+    //   if (mediaPrefix) {
+    //     const px = breakpoints[mediaPrefix];
+    //     const query = isMax
+    //       ? `@media (max-width: ${px - 1}px)`
+    //       : `@media (min-width: ${px}px)`;
+    //     return `${query} {\n  ${rule}\n}`;
+    //   }
+
+    //   return rule;
+    // }
+
+    // ⚠️ Variant is not allowed
+    console.warn(`⚠️ Variant not allowed for: ${fullClassName}`);
+    return null;
+  }
+
   if (rule && rule.validate(val)) {
-    let classSelector = fullClassName.replace(
-      /([ !"#$%&'()*+,./:;<=>?@[\\\]^`{|}~])/g,
-      "\\$1"
-    );
+    let classSelector = escapeClass(fullClassName);
 
     let cssRule = `.${classSelector}`;
     if (pseudo) cssRule += `:${pseudo}`;
@@ -310,6 +402,8 @@ function extractAndGenerateCSS(htmlContent) {
     ...htmlContent.matchAll(/class\s*=\s*["']([^"']+)["']/g),
   ]; // Extract all class names from class="" attributes
 
+  // console.log("styleMap", styleMap);
+  // console.log("classAttrMatches", classAttrMatches);
   const allClasses = classAttrMatches.flatMap((match) => {
     if (match && match[1]) {
       return match[1].trim().split(/\s+/);
@@ -317,15 +411,23 @@ function extractAndGenerateCSS(htmlContent) {
     return []; // safe fallback
   }); // get all the classes from the html content
 
+  // console.log("allClasses", allClasses);
   const filtered = allClasses.filter((cls) => {
     const baseClass = cls.split(":").pop(); // handles md:block, etc.
     if (individualValues.includes(baseClass)) return true;
 
-    const bracketed = cls.match(/^((?:[\w]+:)*)(!?[\w-]+)-\[(.+)\]$/);
+    const bracketed = cls.match(/^((?:[\w-]+:)*)(!?[\w-]+)-\[(.+)\]$/);
     if (bracketed) return true;
+
+    const utilitiesMap = getUtilitiesMap();
+    if (utilitiesMap[cls]) {
+      return true;
+    }
 
     return false;
   });
+
+  // console.log("filtered", filtered);
 
   const unique = [...new Set(filtered)];
 
@@ -339,9 +441,11 @@ function extractAndGenerateCSS(htmlContent) {
  */
 function generateCombinedCSS(filePaths) {
   let combined = "";
+
   filePaths.forEach((filePath) => {
     const raw = fs.readFileSync(filePath, "utf8");
     const clean = stripComments(raw);
+
     const styles = extractAndGenerateCSS(clean);
     combined += styles + "\n";
   });
