@@ -1,6 +1,6 @@
 {
   "name": "valcss",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Tiny utility to generate CSS",
   "main": "valcss.js",
   "bin": {
@@ -19,11 +19,13 @@
   "license": "MIT",
   "dependencies": {
     "glob": "^11.0.3",
-    "tailwind": "^4.0.0"
-  },
-  "devDependencies": {
     "chokidar": "^4.0.3"
   },
+  "files": [
+    "valcss.js",
+    "README.md",
+    "utils/"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/hardik-143/valcss.git"
