@@ -12,7 +12,8 @@
     "arbitrary",
     "inline",
     "utility",
-    "utility-first"
+    "utility-first",
+    "utility-classes"
   ],
   "author": "Hardik Desai",
   "license": "MIT",
