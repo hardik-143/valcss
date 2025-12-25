@@ -301,7 +301,6 @@ function escapeClass(className) {
 function generateCSSFromClass(fullClassName) {
   const { mediaPrefix, isMax, pseudo, baseClass, cleanBaseClass, isImportant } =
     parseClassString(fullClassName);
-  console.log("fullClassName", fullClassName, pseudo);
 
   // console.log("cleanBaseClass", cleanBaseClass, isMax, mediaPrefix);
   if (individualValues.includes(cleanBaseClass)) {
