@@ -1,0 +1,10 @@
+# Source files (keep these out of npm package)
+valcss.js
+utils/
+build.js
+index.html
+valcss.config.js
+
+# Only include built version
+!dist/
+!README.md

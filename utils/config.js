@@ -1,11 +1,11 @@
-const fs = require("fs");
+
 const path = require("path");
 
 /**
  * Loads the config file from the current directory.
  * @returns {Object} The config object.
  */
-function loadConfig() {
+function loadConfig(fs) {
   const configCandidates = [
     path.resolve("valcss.config.js"),
     path.resolve("valcss.config.json"),

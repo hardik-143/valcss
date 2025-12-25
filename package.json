@@ -1,10 +1,14 @@
 {
   "name": "valcss",
-  "version": "1.0.4",
+  "version": "0.0.1",
   "description": "Tiny utility to generate CSS",
-  "main": "valcss.js",
+  "main": "dist/valcss.js",
   "bin": {
-    "valcss": "./valcss.js"
+    "valcss": "./dist/valcss.js"
+  },
+  "scripts": {
+    "build": "node build-terser.js",
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "valcss",
@@ -18,13 +22,13 @@
   "author": "Hardik Desai",
   "license": "MIT",
   "dependencies": {
-    "glob": "^11.0.3",
-    "chokidar": "^4.0.3"
+    "chokidar": "^4.0.3",
+    "glob": "^11.0.3"
   },
   "files": [
-    "valcss.js",
-    "README.md",
-    "utils/"
+    "dist/valcss.js",
+    "dist/utils/",
+    "README.md"
   ],
   "repository": {
     "type": "git",
@@ -33,5 +37,8 @@
   "homepage": "https://github.com/hardik-143/valcss#readme",
   "bugs": {
     "url": "https://github.com/hardik-143/valcss/issues"
+  },
+  "devDependencies": {
+    "terser": "^5.44.1"
   }
 }

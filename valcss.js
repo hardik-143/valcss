@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 const fs = require("fs");
+const path = require("path");
 const chokidar = require("chokidar");
 const { loadConfig } = require("./utils/config");
 const { setConfig, getConfig } = require("./utils/configCache");
@@ -33,7 +34,7 @@ module.exports = {
 // --------------------- INIT COMMAND ---------------------
 
 resetUtilitiesMap();
-const __CONFIG = loadConfig();
+const __CONFIG = loadConfig(fs);
 if (Array.isArray(__CONFIG.plugins)) {
   __CONFIG.plugins.forEach((plugin) => {
     if (typeof plugin === "function") {
@@ -101,7 +102,7 @@ function buildCSS() {
       inject,
     } = getConfig();
 
-    const resolvedFiles = resolveFiles(patterns); // get all the files that match the patterns
+    const resolvedFiles = resolveFiles(patterns, fs); // get all the files that match the patterns
     if (resolvedFiles.length === 0) {
       // if no files are found, exit
       console.error("❌ No matching files found.");
@@ -109,7 +110,7 @@ function buildCSS() {
     }
 
     const finalOutputPath = cliOutputPath || configOutput; // get the output path
-    const css = generateCombinedCSS(resolvedFiles); // generate the css
+    const css = generateCombinedCSS(resolvedFiles, fs); // generate the css
 
     if (dryMode) {
       console.log(`
@@ -123,12 +124,15 @@ DRY MODE ENABLED
 
     if (inject && Array.isArray(inject.targets)) {
       // if inject targets are found, inject the css into the html
-      injectCSSIntoHTML({
-        css,
-        outputPath: finalOutputPath,
-        mode: inject.mode || "link",
-        targets: inject.targets,
-      });
+      injectCSSIntoHTML(
+        {
+          css,
+          outputPath: finalOutputPath,
+          mode: inject.mode || "link",
+          targets: inject.targets,
+        },
+        fs
+      );
     } else {
       console.error("❌ No inject targets found.");
     }

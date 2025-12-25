@@ -1,4 +1,3 @@
-const fs = require("fs");
 const { validators, regex } = require("./validators");
 const { stripComments } = require("./stripComments");
 const { normalizeCalcExpression } = require("./normalizeCalcExpression");
@@ -338,8 +337,7 @@ function generateCSSFromClass(fullClassName) {
 
     // ✅ Variant-specific classes
     if (
-      typeof variants === "string" &&
-      variants === "*" ||
+      (typeof variants === "string" && variants === "*") ||
       variants.includes("*") || // allow all variants
       (mediaPrefix && variants.includes(mediaPrefix)) ||
       (pseudo && variants.includes(pseudo))
@@ -446,7 +444,7 @@ function extractAndGenerateCSS(htmlContent) {
  * @param {string[]} filePaths - The file paths to generate the CSS from.
  * @returns {string} The combined CSS.
  */
-function generateCombinedCSS(filePaths) {
+function generateCombinedCSS(filePaths, fs) {
   let combined = "";
 
   filePaths.forEach((filePath) => {
@@ -465,7 +463,7 @@ function generateCombinedCSS(filePaths) {
  * @param {string} outputPath - The path to the output file.
  * @param {string} css - The CSS to write.
  */
-function writeCSS(outputPath, css) {
+function writeCSS(outputPath, css, fs) {
   fs.writeFileSync(outputPath, css);
   console.log(`✅ CSS written to ${outputPath}`);
 }

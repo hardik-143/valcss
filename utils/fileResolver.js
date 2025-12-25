@@ -1,4 +1,3 @@
-const fs = require("fs");
 const { globSync } = require("glob");
 
 /**
@@ -6,7 +5,7 @@ const { globSync } = require("glob");
  * @param {*} patterns - The patterns to resolve
  * @returns - The resolved files
  */
-function resolveFiles(patterns) {
+function resolveFiles(patterns, fs) {
   const resolved = patterns.flatMap((pattern) => globSync(pattern));
   return [...new Set(resolved.filter((file) => fs.existsSync(file)))];
 }
