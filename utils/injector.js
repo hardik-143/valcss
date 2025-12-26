@@ -1,3 +1,4 @@
+const fs = require("fs");
 const { writeCSS } = require("./cssGenerator");
 const { getHeaderComment } = require("./getHeaderComment");
 
@@ -9,10 +10,12 @@ const { getHeaderComment } = require("./getHeaderComment");
  * @param {string} options.mode - The mode to use for injection.
  * @param {string[]} options.targets - The targets to inject the CSS into.
  */
-function injectCSSIntoHTML(
-  { css = "", outputPath = "valcss-main.css", mode = "link", targets = [] },
-  fs
-) {
+function injectCSSIntoHTML({
+  css = "",
+  outputPath = "valcss-main.css",
+  mode = "link",
+  targets = [],
+}) {
   let finalCSS = "";
   if (mode === "inline") {
     finalCSS = css;
@@ -62,7 +65,7 @@ function injectCSSIntoHTML(
         console.log(`📝 Created missing CSS file: ${outputPath}`);
       }
 
-      writeCSS(outputPath, finalCSS,fs);
+      writeCSS(outputPath, finalCSS);
       // ✅ Inject link tag if not already present
       // if (!html.includes(linkTag)) {
       //   html = html.replace(/<\/head>/i, `${linkTag}\n</head>`);

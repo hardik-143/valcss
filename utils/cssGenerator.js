@@ -1,3 +1,4 @@
+const fs = require("fs");
 const { validators, regex } = require("./validators");
 const { stripComments } = require("./stripComments");
 const { normalizeCalcExpression } = require("./normalizeCalcExpression");
@@ -323,7 +324,7 @@ function generateCSSFromClass(fullClassName) {
   if (utilitiesMap[pluginMatchKey]) {
     const { styles, variants } = utilitiesMap[pluginMatchKey];
 
-    console.log("variants", variants, mediaPrefix, pseudo, pluginMatchKey);
+    // console.log("variants", variants, mediaPrefix, pseudo, pluginMatchKey);
     // ✅ Always allow base class
     if (!mediaPrefix && !pseudo) {
       const cssBody = Object.entries(styles)
@@ -332,7 +333,6 @@ function generateCSSFromClass(fullClassName) {
 
       return `.${fullClassName} { ${cssBody} }`;
     }
-    console.log("variants 23", variants, mediaPrefix, pseudo, pluginMatchKey);
 
     // ✅ Variant-specific classes
     if (
@@ -417,9 +417,10 @@ function extractAndGenerateCSS(htmlContent) {
   // console.log("allClasses", allClasses);
   const filtered = allClasses.filter((cls) => {
     const baseClass = cls.split(":").pop(); // handles md:block, etc.
-    if (individualValues.includes(baseClass)) return true;
+    // console.log("baseClass", baseClass);
+    if (individualValues.includes(baseClass)) return true; // direct match for values like "block", "flex", etc.
 
-    const bracketed = cls.match(/^((?:[\w-]+:)*)(!?[\w-]+)-\[(.+)\]$/);
+    const bracketed = cls.match(/^((?:[\w-]+:)*)(!?[\w-]+)-\[(.+)\]$/); // matches p-[10px], md:p-[10px], !bg-[red], hover:!m-[5px], etc.
     if (bracketed) return true;
 
     const utilitiesMap = getUtilitiesMap();
@@ -443,7 +444,7 @@ function extractAndGenerateCSS(htmlContent) {
  * @param {string[]} filePaths - The file paths to generate the CSS from.
  * @returns {string} The combined CSS.
  */
-function generateCombinedCSS(filePaths, fs) {
+function generateCombinedCSS(filePaths) {
   let combined = "";
 
   filePaths.forEach((filePath) => {
@@ -462,7 +463,7 @@ function generateCombinedCSS(filePaths, fs) {
  * @param {string} outputPath - The path to the output file.
  * @param {string} css - The CSS to write.
  */
-function writeCSS(outputPath, css, fs) {
+function writeCSS(outputPath, css) {
   fs.writeFileSync(outputPath, css);
   console.log(`✅ CSS written to ${outputPath}`);
 }

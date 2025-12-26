@@ -11,5 +11,6 @@ const displayValues = [
   "inline-flex",
   "inline-grid",
 ];
+const visibilityValues = ["visible", "invisible"];
 
-export { pseudoPrefixes, positionValues, displayValues };
+export { pseudoPrefixes, positionValues, displayValues, visibilityValues };

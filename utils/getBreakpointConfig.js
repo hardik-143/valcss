@@ -10,9 +10,28 @@ const defaultBreakpoints = {
 };
 function getBreakpointConfig() {
   const userConfig = getConfig();
+  let userBreakpoints = userConfig.breakpoints || {};
+  // check is userBReakPoints values are string or number, convert to number if string and also if has px at the end remove it
+  Object.keys(userBreakpoints).forEach((key) => {
+    let value = userBreakpoints[key];
+    if (typeof value === "string") {
+      if (value.endsWith("px")) {
+        value = value.slice(0, -2);
+      }
+      const numValue = parseInt(value, 10);
+      if (!isNaN(numValue)) {
+        userBreakpoints[key] = numValue;
+      } else {
+        console.warn(
+          `⚠️ Invalid breakpoint value for "${key}": ${userBreakpoints[key]}. Using default value instead.`
+        );
+        delete userBreakpoints[key];
+      }
+    }
+  });
   const breakpoints = {
     ...defaultBreakpoints,
-    ...(userConfig.breakpoints || {}),
+    ...userBreakpoints,
   };
   //   console.log("userConfig", userConfig.breakpoints, breakpoints);
 

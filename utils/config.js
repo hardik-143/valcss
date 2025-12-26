@@ -1,11 +1,11 @@
-
+const fs = require("fs");
 const path = require("path");
 
 /**
  * Loads the config file from the current directory.
  * @returns {Object} The config object.
  */
-function loadConfig(fs) {
+function loadConfig() {
   const configCandidates = [
     path.resolve("valcss.config.js"),
     path.resolve("valcss.config.json"),
@@ -23,12 +23,14 @@ function loadConfig(fs) {
   try {
     config = require(configPath);
   } catch (err) {
-    throw new Error(
-      `Failed to load config at ${configPath}: ${err.message}`
-    );
+    throw new Error(`Failed to load config at ${configPath}: ${err.message}`);
   }
 
-  if (!config.files || config.files.length === 0 || !Array.isArray(config.files)) {
+  if (
+    !config.files ||
+    config.files.length === 0 ||
+    !Array.isArray(config.files)
+  ) {
     throw new Error("'files' array missing or invalid in config.");
   }
 

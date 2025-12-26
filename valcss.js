@@ -34,7 +34,7 @@ module.exports = {
 // --------------------- INIT COMMAND ---------------------
 
 resetUtilitiesMap();
-const __CONFIG = loadConfig(fs);
+const __CONFIG = loadConfig();
 if (Array.isArray(__CONFIG.plugins)) {
   __CONFIG.plugins.forEach((plugin) => {
     if (typeof plugin === "function") {
@@ -50,13 +50,30 @@ const { injectCSSIntoHTML } = require("./utils/injector");
 let cliOutputPath = null; // output file path
 let watchMode = false; // watch mode
 let dryMode = false; // dry mode
+let validArgs = ["--output", "--watch", "-w", "--dry-run", "--help", "-h"];
 
+if (
+  args.some(
+    (arg) =>
+      !validArgs.includes(arg) &&
+      !args[args.indexOf(arg) - 1]?.includes("--output")
+  )
+) {
+  console.error(
+    `❌ Invalid argument: ${args.find(
+      (arg) =>
+        !validArgs.includes(arg) &&
+        !args[args.indexOf(arg) - 1]?.includes("--output")
+    )}`
+  );
+  process.exit(1);
+}
 // --------------------- DRY MODE ---------------------
 if (args.includes("--dry-run") && args[0] === "--dry-run") dryMode = true;
 // --------------------- DRY MODE ---------------------
 
 // --------------------- HELP COMMAND ---------------------
-if (args.length === 1 && args[0] === "--help") {
+if (args.length === 1 && (args[0] === "--help" || args[0] === "-h")) {
   console.log(`
 ------------------------------------------------------
 
@@ -66,11 +83,13 @@ Usage:
   valcss                 Uses valcss.config.json
   valcss --output <file> Override output file
   valcss --watch         Watch input files and regenerate CSS on changes
+  valcss --dry-run      Output CSS to console without writing files
+  valcss --help          Show this help message
 
 Options:
   --output <file>        Write final CSS to given file
-  --watch                Enable watch mode
-  --help                 Show this help message
+  --watch | -w          Enable watch mode
+  --help | -h           Show this help message
 
 ------------------------------------------------------
 `);
@@ -80,7 +99,7 @@ Options:
 
 // --------------------- ARGUMENT PARSING ---------------------
 
-if (args.includes("--watch")) watchMode = true;
+if (args.includes("--watch") || args.includes("-w")) watchMode = true;
 
 if (args.includes("--output")) {
   const i = args.indexOf("--output");
@@ -102,7 +121,7 @@ function buildCSS() {
       inject,
     } = getConfig();
 
-    const resolvedFiles = resolveFiles(patterns, fs); // get all the files that match the patterns
+    const resolvedFiles = resolveFiles(patterns); // get all the files that match the patterns
     if (resolvedFiles.length === 0) {
       // if no files are found, exit
       console.error("❌ No matching files found.");
@@ -110,7 +129,8 @@ function buildCSS() {
     }
 
     const finalOutputPath = cliOutputPath || configOutput; // get the output path
-    const css = generateCombinedCSS(resolvedFiles, fs); // generate the css
+    console.log(`📝 Generating CSS for ${resolvedFiles.length} files...`);
+    const css = generateCombinedCSS(resolvedFiles); // generate the css
 
     if (dryMode) {
       console.log(`
@@ -124,15 +144,12 @@ DRY MODE ENABLED
 
     if (inject && Array.isArray(inject.targets)) {
       // if inject targets are found, inject the css into the html
-      injectCSSIntoHTML(
-        {
-          css,
-          outputPath: finalOutputPath,
-          mode: inject.mode || "link",
-          targets: inject.targets,
-        },
-        fs
-      );
+      injectCSSIntoHTML({
+        css,
+        outputPath: finalOutputPath,
+        mode: inject.mode || "link",
+        targets: inject.targets,
+      });
     } else {
       console.error("❌ No inject targets found.");
     }

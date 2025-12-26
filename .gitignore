@@ -1,6 +1,43 @@
-node_modules
+# Dependencies
+node_modules/
+
+# Build output
 dist/
-*.log
-.DS_Store
+
+# Environment files
 .env
 .env.local
+.env.production.local
+.env.development.local
+
+# NPM configuration (contains private registry info)
+.npmrc
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor directories and files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+.tmp/
+.cache/
+
+# Coverage directory used by tools like istanbul
+coverage/

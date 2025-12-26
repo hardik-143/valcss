@@ -35,14 +35,6 @@
 npm install -g valcss
 ```
 
-_Or clone and use directly if working locally:_
-
-```bash
-git clone https://github.com/hardik-143/valcss.git
-cd valcss
-npm install
-```
-
 ---
 
 ## Getting Started

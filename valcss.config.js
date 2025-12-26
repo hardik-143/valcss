@@ -7,7 +7,8 @@ module.exports = {
     targets: ["index.html"],
   },
   breakpoints: {
-    lg: 990,
+    lg: 990, // overriding default lg breakpoint
+    md: "asd", // invalid breakpoint to test error handling
   },
   plugins: [
     ({ addUtilities }) => {
@@ -20,7 +21,7 @@ module.exports = {
           },
           // "flex-between": "flex justify-[between] items-[start]",
         },
-        "*"
+        ["md", "hover", "lg"]
       );
     },
   ],
