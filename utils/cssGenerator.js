@@ -1,17 +1,23 @@
 const fs = require("fs");
 const { validators, regex } = require("./validators");
 const { stripComments } = require("./stripComments");
-const { normalizeCalcExpression } = require("./normalizeCalcExpression");
+const {
+  normalizeCalcExpression,
+  normalizeCSSMath,
+} = require("./normalizeCalcExpression");
 const {
   pseudoPrefixes,
   positionValues,
   displayValues,
+  inidividualConstants,
+  spacingUtilsDirections,
+  spacingUtilsProperties,
 } = require("./constants");
 const { getBreakpointConfig } = require("./getBreakpointConfig");
 const { breakpoints } = getBreakpointConfig();
 const { getUtilitiesMap } = require("./pluginEngine");
 
-const individualValues = [...positionValues, ...displayValues];
+// const individualValues = [...positionValues, ...displayValues];
 
 /**
  * Creates a style map for a property.
@@ -33,47 +39,47 @@ function createStyleMap(property, values) {
   }
   return map;
 }
-
+/**
+ * Style map for position values.
+ */
 const positionStyleMap = createStyleMap("position", positionValues);
+
+/**
+ * Style map for display values.
+ */
 const displayStyleMap = createStyleMap("display", displayValues);
 
 /**
  * Creates spacing utilities for a property.
  * @param {string} property - The property to create spacing utilities for.
  * @returns {Object} The spacing utilities.
+ * @example
+ * createSpacingUtils("padding") // creates padding utilities like p-[value], px-[value], py-[value], pt-[value], etc.
+ * @description
+ * - validate: Validates the value.
+ * - generate: Generates the CSS for the value.
  */
 function createSpacingUtils(property) {
-  const directions = {
-    "": [""],
-    x: ["left", "right"],
-    y: ["top", "bottom"],
-    t: ["top"],
-    b: ["bottom"],
-    l: ["left"],
-    r: ["right"],
-  };
-
   const utils = {};
 
-  for (const key in directions) {
+  for (const key in spacingUtilsDirections) {
     const dirSuffix = key ? key : ""; // e.g., px, pt, etc.
-    const classKey = property[0] + dirSuffix; // p, px, pt...
+    const classKey = spacingUtilsProperties[property] + dirSuffix; // p, px, pt...
 
     utils[classKey] = {
       validate: validators.spacingValues,
       generate: (val) => {
-        let cssValue = normalizeCalcExpression(val);
+        let cssValue = normalizeCSSMath(val);
         let isOnlyDigit = regex.digit.test(cssValue);
         if (isOnlyDigit) {
           cssValue = `${parseFloat(cssValue)}px`;
         }
-        cssValue = cssValue.replaceAll("_", " ");
 
-        if (directions[key][0] === "") {
+        if (spacingUtilsDirections[key][0] === "") {
           return `${property}: ${cssValue};`; // p or m
         }
 
-        return directions[key]
+        return spacingUtilsDirections[key]
           .map((d) => `${property}-${d}: ${cssValue};`)
           .join(" ");
       },
@@ -83,6 +89,9 @@ function createSpacingUtils(property) {
   return utils;
 }
 
+/**
+ * Creates spacing utilities for padding and margin.
+ */
 const spacingUtils = {
   ...createSpacingUtils("padding"),
   ...createSpacingUtils("margin"),
@@ -99,13 +108,16 @@ function createSizeUtils(properties) {
   for (const [key, cssProp] of Object.entries(properties)) {
     utils[key] = {
       validate: validators.lengthUnit,
-      generate: (val) => `${cssProp}: ${normalizeCalcExpression(val)};`,
+      generate: (val) => `${cssProp}: ${normalizeCSSMath(val)};`,
     };
   }
 
   return utils;
 }
 
+/**
+ * Creates size utilities for width, height, max-width, min-width, max-height, and min-height.
+ */
 const sizeUtils = createSizeUtils({
   w: "width",
   h: "height",
@@ -115,6 +127,9 @@ const sizeUtils = createSizeUtils({
   "min-h": "min-height",
 });
 
+/**
+ * Creates inset utilities for top, left, right, and bottom.
+ */
 const insetUtils = createSizeUtils({
   top: "top",
   left: "left",
@@ -122,6 +137,9 @@ const insetUtils = createSizeUtils({
   bottom: "bottom",
 });
 
+/**
+ * The main style map for generating CSS rules.
+ */
 const styleMap = {
   ...spacingUtils,
   ...sizeUtils,
@@ -237,10 +255,48 @@ const styleMap = {
 };
 
 /**
- * Parses the class string and returns the media prefix, isMax, pseudo, baseClass, cleanBaseClass, and isImportant.
- * @param {string} fullClassName - The full class name to parse.
- * @description checks for media prefix, isMax, pseudo, baseClass, cleanBaseClass, and isImportant.
- * @returns {Object} The parsed class string.
+ * Parses a utility-style class string and extracts its modifiers and base class.
+ *
+ * It detects:
+ * - media prefixes (e.g. `sm`, `md`, `lg`)
+ * - max-width modifiers (`max-*`)
+ * - pseudo-class prefixes (e.g. `hover`, `focus`)
+ * - important modifier (`!`)
+ *
+ * @param {string} fullClassName
+ * The complete class string to parse.
+ *
+ * @returns {{
+ *   mediaPrefix: string | null,
+ *   isMax: boolean,
+ *   pseudo: string | null,
+ *   baseClass: string,
+ *   cleanBaseClass: string,
+ *   isImportant: boolean
+ * }}
+ * An object containing parsed class metadata.
+ *
+ * @example
+ * parseClassString("md:hover:p-[10px]");
+ * // {
+ * //   mediaPrefix: "md",
+ * //   isMax: false,
+ * //   pseudo: "hover",
+ * //   baseClass: "p-[10px]",
+ * //   cleanBaseClass: "p-[10px]",
+ * //   isImportant: false
+ * // }
+ *
+ * @example
+ * parseClassString("max-lg:focus:!text-red-500");
+ * // {
+ * //   mediaPrefix: "lg",
+ * //   isMax: true,
+ * //   pseudo: "focus",
+ * //   baseClass: "!text-red-500",
+ * //   cleanBaseClass: "text-red-500",
+ * //   isImportant: true
+ * // }
  */
 function parseClassString(fullClassName) {
   const parts = fullClassName.split(":");
@@ -250,8 +306,12 @@ function parseClassString(fullClassName) {
   let isMax = false;
   let pseudo = null;
 
-  // max-bp:p-[1px]
-  // Only check first part for media
+  /**
+   * Check if first part is a media prefix
+   * @example
+   * "md:hover:p-[10px]" -> "md"
+   * "max-lg:hover:p-[10px]" -> "max-lg"
+   */
   const firstPart = parts[0];
   if (firstPart.startsWith("max-")) {
     const bp = firstPart.slice(4);
@@ -264,13 +324,18 @@ function parseClassString(fullClassName) {
     isMax = false;
   }
 
-  // Check remaining parts for pseudo
+  /**
+   * Check for pseudo prefixes in the middle parts
+   * @example
+   * "md:hover:p-[10px]" -> "hover"
+   * "max-lg:active:p-[10px]" -> "active"
+   */
   for (let i = mediaPrefix ? 1 : 0; i < parts.length - 1; i++) {
     const part = parts[i];
 
     if (breakpoints[part] || part.startsWith("max-")) {
       console.warn(
-        `⚠️ Media prefix "${part}" must appear only as the first segment: "${fullClassName}"`
+        `⚠️  Media prefix "${part}" must appear only as the first segment: "${fullClassName}"`
       );
     }
     if (pseudoPrefixes.includes(part)) {
@@ -290,8 +355,21 @@ function parseClassString(fullClassName) {
     isImportant,
   };
 }
+
+/**
+ * Escapes special characters in a class name for CSS selectors.
+ * @param {*} className
+ * @returns
+ * @example escapeClass("p-[10px]") // "p-\[10px\]"
+ */
 function escapeClass(className) {
   return className.replace(/([ !"#$%&'()*+,./:;<=>?@[\\\]^`{|}~])/g, "\\$1");
+}
+
+function getCSSBodyFromStyles(styles) {
+  return Object.entries(styles)
+    .map(([prop, val]) => `${prop}: ${val};`)
+    .join(" ");
 }
 
 /**
@@ -299,12 +377,16 @@ function escapeClass(className) {
  * @param {string} fullClassName - The full class name to generate the CSS from.
  * @returns {string} The generated CSS.
  */
-function generateCSSFromClass(fullClassName) {
+function generateCSSFromClass(fullClassName, getCSSOnly = false) {
   const { mediaPrefix, isMax, pseudo, baseClass, cleanBaseClass, isImportant } =
     parseClassString(fullClassName);
 
-  // console.log("cleanBaseClass", cleanBaseClass, isMax, mediaPrefix);
-  if (individualValues.includes(cleanBaseClass)) {
+  // console.log("Generating CSS for:", fullClassName, cleanBaseClass, getCSSOnly);
+  let val = null;
+  let rule = null;
+
+  // console.log("Generating CSS for:", fullClassName, cleanBaseClass);
+  if (inidividualConstants.includes(cleanBaseClass)) {
     // direct match like "block", "flex", "absolute", etc.
     val = cleanBaseClass;
     rule = styleMap[cleanBaseClass];
@@ -324,13 +406,24 @@ function generateCSSFromClass(fullClassName) {
   if (utilitiesMap[pluginMatchKey]) {
     const { styles, variants } = utilitiesMap[pluginMatchKey];
 
+    // console.log("Generating plugin CSS for:", styles, pluginMatchKey);
     // console.log("variants", variants, mediaPrefix, pseudo, pluginMatchKey);
     // ✅ Always allow base class
     if (!mediaPrefix && !pseudo) {
-      const cssBody = Object.entries(styles)
-        .map(([prop, val]) => `${prop}: ${val};`)
-        .join(" ");
-
+      let cssBody = "";
+      if (typeof styles === "string") {
+        cssBody = styles
+          .split(" ")
+          .map((cls) => generateCSSFromClass(cls, true))
+          .filter(Boolean)
+          .join(" ");
+        // console.log("cssBody", cssBody);
+      } else if (typeof styles === "object" && !Array.isArray(styles)) {
+        cssBody = getCSSBodyFromStyles(styles);
+      }
+      if(getCSSOnly) {
+        return cssBody;
+      }
       return `.${fullClassName} { ${cssBody} }`;
     }
 
@@ -341,12 +434,19 @@ function generateCSSFromClass(fullClassName) {
       (mediaPrefix && variants.includes(mediaPrefix)) ||
       (pseudo && variants.includes(pseudo))
     ) {
-      const cssBody = Object.entries(styles)
-        .map(([prop, val]) => `${prop}: ${val};`)
-        .join(" ");
-
+      let cssBody = "";
+      if (typeof styles === "string") {
+        cssBody = styles
+          .split(" ")
+          .map((cls) => generateCSSFromClass(cls, true))
+          .filter(Boolean)
+          .join(" ");
+        // console.log("cssBody", cssBody);
+      } else if (typeof styles === "object" && !Array.isArray(styles)) {
+        cssBody = getCSSBodyFromStyles(styles);
+      }
       let selector = `.${escapeClass(fullClassName)}`;
-      if (pseudo) selector += `:${pseudo}`;
+      if (pseudo) selector += `:${pseudo}`;      
 
       let rule = `${selector} { ${cssBody} }`;
 
@@ -379,6 +479,9 @@ function generateCSSFromClass(fullClassName) {
 
     const declaration = `{ ${cssValue} }`;
 
+    if (getCSSOnly) {
+      return cssValue;
+    }
     if (mediaPrefix) {
       const px = breakpoints[mediaPrefix];
       const query = isMax
@@ -418,14 +521,19 @@ function extractAndGenerateCSS(htmlContent) {
   const filtered = allClasses.filter((cls) => {
     const baseClass = cls.split(":").pop(); // handles md:block, etc.
     // console.log("baseClass", baseClass);
-    if (individualValues.includes(baseClass)) return true; // direct match for values like "block", "flex", etc.
+    if (inidividualConstants.includes(baseClass)) return true; // direct match for values like "block", "flex", etc.
 
     const bracketed = cls.match(/^((?:[\w-]+:)*)(!?[\w-]+)-\[(.+)\]$/); // matches p-[10px], md:p-[10px], !bg-[red], hover:!m-[5px], etc.
     if (bracketed) return true;
 
     const utilitiesMap = getUtilitiesMap();
     let baseUtility = cls.split(":").pop();
+    // console.log("Checking utility map for:", baseUtility, cls);
     if (utilitiesMap[baseUtility]) {
+      return true;
+    }
+
+    if (baseUtility.startsWith("!") || baseUtility.startsWith("float")) {
       return true;
     }
 
@@ -436,7 +544,11 @@ function extractAndGenerateCSS(htmlContent) {
 
   const unique = [...new Set(filtered)];
 
-  return unique.map(generateCSSFromClass).filter(Boolean).join("\n");
+  // console.log("Unique classes to process:", unique);
+  return unique
+    .map((cls) => generateCSSFromClass(cls, false))
+    .filter(Boolean)
+    .join("\n");
 }
 
 /**
@@ -468,4 +580,4 @@ function writeCSS(outputPath, css) {
   console.log(`✅ CSS written to ${outputPath}`);
 }
 
-module.exports = { generateCombinedCSS, writeCSS };
+module.exports = { generateCombinedCSS, writeCSS, generateCSSFromClass };

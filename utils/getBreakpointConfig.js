@@ -8,6 +8,12 @@ const defaultBreakpoints = {
   xl: 1280,
   xxl: 1536,
 };
+
+/**
+ * Gets the breakpoint configuration by merging user-defined breakpoints with default breakpoints.
+ * @returns 
+ * {Object} An object containing the merged breakpoints and a function to get breakpoint values.
+ */
 function getBreakpointConfig() {
   const userConfig = getConfig();
   let userBreakpoints = userConfig.breakpoints || {};
@@ -23,7 +29,7 @@ function getBreakpointConfig() {
         userBreakpoints[key] = numValue;
       } else {
         console.warn(
-          `⚠️ Invalid breakpoint value for "${key}": ${userBreakpoints[key]}. Using default value instead.`
+          `⚠️  Invalid breakpoint value for "${key}": ${userBreakpoints[key]}. Using default value "${defaultBreakpoints[key]}" instead.`
         );
         delete userBreakpoints[key];
       }

@@ -131,7 +131,6 @@ function buildCSS() {
     const finalOutputPath = cliOutputPath || configOutput; // get the output path
     console.log(`📝 Generating CSS for ${resolvedFiles.length} files...`);
     const css = generateCombinedCSS(resolvedFiles); // generate the css
-
     if (dryMode) {
       console.log(`
 ------------------------------------------------------

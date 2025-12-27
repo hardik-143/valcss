@@ -8,10 +8,10 @@ const utilitiesMap = {};
 // }
 
 function addUtilities(newUtilities, variants = []) {
-//   console.log("adding utilities", newUtilities, variants);
   for (const className in newUtilities) {
+    const utilValue = newUtilities[className];
     utilitiesMap[className] = {
-      styles: newUtilities[className],
+      styles: utilValue,
       variants,
     };
   }
